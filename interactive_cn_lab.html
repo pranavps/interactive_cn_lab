@@ -183,6 +183,21 @@
     </div>
 
     <script>
+        // Define createAccordion function first
+        function createAccordion(title, content) {
+            return `
+                <div class="bg-white rounded-xl shadow-md">
+                    <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                        <span>${title}</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content px-4 pb-4 text-stone-600">
+                        <div class="pt-4 border-t border-stone-200">${content}</div>
+                    </div>
+                </div>
+            `;
+        }
+
         const AppData = {
             vms: {
                 firewallvm: { name: 'FirewallVM (EFW)', os: 'Endian Firewall 3.3.2', memory: '1GB', disk: '10GB', interfaces: ['RED (Host-Only)', 'GREEN (Internal)', 'ORANGE (Internal)', 'BLUE (Internal)']},
@@ -235,91 +250,214 @@
                     content: `
                         <p class="mb-4">In this part, you will set up multiple virtual machines and configure a network topology that includes a dedicated firewall with a DMZ and a simulated mobile network.</p>
                         <div class="space-y-4">
-                            ${createAccordion('1.1 VM Creation', `
-                                <p>Create five new Virtual Machines in Oracle VirtualBox with the specified OS, memory, and disk settings.</p>
-                                <ul class="list-disc pl-5 mt-2 space-y-2">
-                                    <li><b>FirewallVM:</b> 4 Network Adapters (Host-Only, LAN_NET, DMZ_NET, BLUE_NET)</li>
-                                    <li><b>ServerVM:</b> 2 Network Adapters (NAT for setup, then DMZ_NET only)</li>
-                                    <li><b>ClientVM:</b> 2 Network Adapters (NAT for setup, then LAN_NET only)</li>
-                                    <li><b>KaliClientVM:</b> 2 Network Adapters (NAT for setup, then LAN_NET only)</li>
-                                    <li><b>MobileClientVM:</b> 2 Network Adapters (NAT for setup, then BLUE_NET only)</li>
-                                </ul>`)}
-                            ${createAccordion('1.2 EFW Installation & Configuration', `
-                                <p>Install Endian Firewall on <b>FirewallVM</b>. During setup:</p>
-                                <ul class="list-disc pl-5 mt-2 space-y-2">
-                                    <li>Assign network interfaces to the correct zones: RED, GREEN, ORANGE, BLUE.</li>
-                                    <li><b>RED (WAN):</b> Set to obtain IP via DHCP.</li>
-                                    <li><b>GREEN (LAN):</b> Static IP <b>10.0.0.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.0.100-200).</li>
-                                    <li><b>ORANGE (DMZ):</b> Static IP <b>10.0.1.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.1.100-200).</li>
-                                    <li><b>BLUE (Mobile/VPN):</b> Static IP <b>10.0.2.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.2.100-200).</li>
-                                </ul>`)}
-                            ${createAccordion('1.3 Client & Server Network Configuration', `
-                                <p>First, update all Ubuntu/Kali VMs using the NAT adapter, then remove it. Configure the remaining internal adapter to use DHCP.</p>
-                                <p><b>Example Netplan for LAN_NET VMs (ClientVM, KaliClientVM):</b></p>
-                                <div class="code-block">network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp0s8: # Or your interface name\n      dhcp4: yes\n      nameservers:\n        addresses: [10.0.0.1]</div>
-                                <p class="mt-4"><b>Example Netplan for DMZ_NET VM (ServerVM):</b></p>
-                                <div class="code-block">network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp0s8: # Or your interface name\n      dhcp4: yes\n      nameservers:\n        addresses: [10.0.1.1]</div>
-                                <p class="mt-4"><b>Example Netplan for BLUE_NET VM (MobileClientVM):</b></p>
-                                <div class="code-block">network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp0s8: # Or your interface name\n      dhcp4: yes\n      nameservers:\n        addresses: [10.0.2.1]</div>
-                                <p class="mt-4">After applying, find each VM's assigned IP address using <code>ip a</code>.</p>`)}
-                            ${createAccordion('1.4 Connectivity Test', `
-                                <p>From each client VM, ping the other VMs and the firewall interfaces to test connectivity. Ping an external site like <code>google.com</code> to test internet access through the firewall. Use the dynamically assigned IPs you found.</p>
-                                <p>Run <code>traceroute google.com</code> from ClientVM to see the network path.</p>
-                                <p class="font-bold mt-4">Questions to Answer:</p>
-                                <ul class="list-disc pl-5 mt-2">
-                                    <li><b>1.1:</b> Explain the suitability of the Host-Only/Internal network topology.</li>
-                                    <li><b>1.2:</b> What is the purpose of a DMZ (ORANGE zone)?</li>
-                                    <li><b>1.3:</b> What is the typical use case for a BLUE zone?</li>
-                                    <li><b>1.4:</b> Discuss the pros and cons of using DHCP vs. static IPs in this lab.</li>
-                                </ul>`)}
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>1.1 VM Creation</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Create five new Virtual Machines in Oracle VirtualBox with the specified OS, memory, and disk settings.</p>
+                                        <ul class="list-disc pl-5 mt-2 space-y-2">
+                                            <li><b>FirewallVM:</b> 4 Network Adapters (Host-Only, LAN_NET, DMZ_NET, BLUE_NET)</li>
+                                            <li><b>ServerVM:</b> 2 Network Adapters (NAT for setup, then DMZ_NET only)</li>
+                                            <li><b>ClientVM:</b> 2 Network Adapters (NAT for setup, then LAN_NET only)</li>
+                                            <li><b>KaliClientVM:</b> 2 Network Adapters (NAT for setup, then LAN_NET only)</li>
+                                            <li><b>MobileClientVM:</b> 2 Network Adapters (NAT for setup, then BLUE_NET only)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>1.2 EFW Installation & Configuration</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Install Endian Firewall on <b>FirewallVM</b>. During setup:</p>
+                                        <ul class="list-disc pl-5 mt-2 space-y-2">
+                                            <li>Assign network interfaces to the correct zones: RED, GREEN, ORANGE, BLUE.</li>
+                                            <li><b>RED (WAN):</b> Set to obtain IP via DHCP.</li>
+                                            <li><b>GREEN (LAN):</b> Static IP <b>10.0.0.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.0.100-200).</li>
+                                            <li><b>ORANGE (DMZ):</b> Static IP <b>10.0.1.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.1.100-200).</li>
+                                            <li><b>BLUE (Mobile/VPN):</b> Static IP <b>10.0.2.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.2.100-200).</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>1.3 Client & Server Network Configuration</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>First, update all Ubuntu/Kali VMs using the NAT adapter, then remove it. Configure the remaining internal adapter to use DHCP.</p>
+                                        <p><b>Example Netplan for LAN_NET VMs (ClientVM, KaliClientVM):</b></p>
+                                        <div class="code-block">network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s8: # Or your interface name
+      dhcp4: yes
+      nameservers:
+        addresses: [10.0.0.1]</div>
+                                        <p class="mt-4"><b>Example Netplan for DMZ_NET VM (ServerVM):</b></p>
+                                        <div class="code-block">network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s8: # Or your interface name
+      dhcp4: yes
+      nameservers:
+        addresses: [10.0.1.1]</div>
+                                        <p class="mt-4"><b>Example Netplan for BLUE_NET VM (MobileClientVM):</b></p>
+                                        <div class="code-block">network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s8: # Or your interface name
+      dhcp4: yes
+      nameservers:
+        addresses: [10.0.2.1]</div>
+                                        <p class="mt-4">After applying, find each VM's assigned IP address using <code>ip a</code>.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>1.4 Connectivity Test</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>From each client VM, ping the other VMs and the firewall interfaces to test connectivity. Ping an external site like <code>google.com</code> to test internet access through the firewall. Use the dynamically assigned IPs you found.</p>
+                                        <p>Run <code>traceroute google.com</code> from ClientVM to see the network path.</p>
+                                        <p class="font-bold mt-4">Questions to Answer:</p>
+                                        <ul class="list-disc pl-5 mt-2">
+                                            <li><b>1.1:</b> Explain the suitability of the Host-Only/Internal network topology.</li>
+                                            <li><b>1.2:</b> What is the purpose of a DMZ (ORANGE zone)?</li>
+                                            <li><b>1.3:</b> What is the typical use case for a BLUE zone?</li>
+                                            <li><b>1.4:</b> Discuss the pros and cons of using DHCP vs. static IPs in this lab.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     `
                 },
                 { 
                     title: 'Part 2: Firewall Implementation',
                     content: `
-                         <p class="mb-4">In this part, you will access the Endian Firewall web interface and configure basic firewall rules to control traffic between your network zones.</p>
+                        <p class="mb-4">In this part, you will access the Endian Firewall web interface and configure basic firewall rules to control traffic between your network zones.</p>
                         <div class="space-y-4">
-                             ${createAccordion('2.1 Access EFW Web GUI', `
-                                <p>From your <b>host machine's browser</b>, navigate to the <b>RED (WAN) IP address</b> of your FirewallVM (e.g., http://192.168.56.101). Log in and complete the initial setup wizard.</p>
-                             `)}
-                             ${createAccordion('2.2 Basic Firewall Rules', `
-                                <p>Navigate to <b>Firewall > Traffic Rules</b>. You will create rules to explicitly allow or deny traffic.</p>
-                                <ul class="list-disc pl-5 mt-2 space-y-2">
-                                    <li><b>Rule 1:</b> Allow HTTP from any source in the GREEN zone to any destination in the ORANGE zone (where ServerVM is now located).</li>
-                                    <li><b>Rule 2:</b> Create rules to allow ICMP (Ping) traffic between all your internal zones (GREEN, ORANGE, BLUE) to facilitate testing.</li>
-                                </ul>
-                             `)}
-                            ${createAccordion('2.3 Testing Firewall Rules', `
-                                <p>From ClientVM, verify you can ping and access the web server on ServerVM. Then, temporarily disable the HTTP rule in EFW and show that access is blocked. Re-enable it afterwards.</p>
-                                <p class="font-bold mt-4">Questions to Answer:</p>
-                                <ul class="list-disc pl-5 mt-2">
-                                    <li><b>2.1:</b> Explain the concept of a stateful firewall.</li>
-                                    <li><b>2.2:</b> Describe EFW's default outbound policy for the GREEN zone.</li>
-                                    <li><b>2.3:</b> Implement and test a rule to block HTTP from the BLUE zone to the GREEN zone.</li>
-                                </ul>`)}
-                        </div>`
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>2.1 Access EFW Web GUI</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>From your <b>host machine's browser</b>, navigate to the <b>RED (WAN) IP address</b> of your FirewallVM (e.g., http://192.168.56.101). Log in and complete the initial setup wizard.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>2.2 Basic Firewall Rules</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Navigate to <b>Firewall > Traffic Rules</b>. You will create rules to explicitly allow or deny traffic.</p>
+                                        <ul class="list-disc pl-5 mt-2 space-y-2">
+                                            <li><b>Rule 1:</b> Allow HTTP from any source in the GREEN zone to any destination in the ORANGE zone (where ServerVM is now located).</li>
+                                            <li><b>Rule 2:</b> Create rules to allow ICMP (Ping) traffic between all your internal zones (GREEN, ORANGE, BLUE) to facilitate testing.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>2.3 Testing Firewall Rules</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>From ClientVM, verify you can ping and access the web server on ServerVM. Then, temporarily disable the HTTP rule in EFW and show that access is blocked. Re-enable it afterwards.</p>
+                                        <p class="font-bold mt-4">Questions to Answer:</p>
+                                        <ul class="list-disc pl-5 mt-2">
+                                            <li><b>2.1:</b> Explain the concept of a stateful firewall.</li>
+                                            <li><b>2.2:</b> Describe EFW's default outbound policy for the GREEN zone.</li>
+                                            <li><b>2.3:</b> Implement and test a rule to block HTTP from the BLUE zone to the GREEN zone.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `
                 },
                 {
                     title: 'Part 3-7: Application Services & Sockets',
                     content: `
                         <p class="mb-4">These parts involve setting up services on ServerVM and creating custom clients to interact with them. You will use the dynamically assigned IP of ServerVM (<b>ServerVM_IP</b>) for all connections. Remember that ServerVM is now in the ORANGE zone.</p>
                         <div class="space-y-4">
-                            ${createAccordion('Part 3: HTTP Server & Client', `
-                                <p>Install Apache2 on ServerVM and create a simple index.html. Access it from all client VMs using <code>lynx</code> or <code>curl</code>. Then, write a Python script (<code>http_client.py</code>) on ClientVM to make a GET request to ServerVM using sockets.</p>
-                            `)}
-                            ${createAccordion('Part 4: FTP Server & Client', `
-                                <p>Install vsftpd on ServerVM. Access it from the clients using a standard FTP client. Then, write a Python script (<code>ftp_client_list.py</code>) to connect and issue a LIST command, correctly handling the passive mode data connection.</p>
-                            `)}
-                            ${createAccordion('Part 5: DNS Simulation', `
-                                <p>Simulate DNS by editing the <code>/etc/hosts</code> file on ServerVM to map a name like <code>mywebserver.local</code> to its own IP. Configure the other VMs to use ServerVM as their DNS resolver and test name resolution using <code>ping</code> and <code>dig</code>.</p>
-                            `)}
-                            ${createAccordion('Part 6: UDP Echo Client-Server', `
-                                <p>Write a Python UDP server (<code>udp_server.py</code>) that listens for datagrams and echoes them back. Write a corresponding UDP client (<code>udp_client.py</code>) to send messages and receive the echo.</p>
-                            `)}
-                            ${createAccordion('Part 7: TCP Echo Client-Server', `
-                                <p>Write a Python TCP server (<code>tcp_server.py</code>) that listens for connections and echoes data back to the connected client. Write a corresponding TCP client (<code>tcp_client.py</code>) to connect, send messages, and receive the echo.</p>
-                            `)}
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>Part 3: HTTP Server & Client</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Install Apache2 on ServerVM and create a simple index.html. Access it from all client VMs using <code>lynx</code> or <code>curl</code>. Then, write a Python script (<code>http_client.py</code>) on ClientVM to make a GET request to ServerVM using sockets.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>Part 4: FTP Server & Client</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Install vsftpd on ServerVM. Access it from the clients using a standard FTP client. Then, write a Python script (<code>ftp_client_list.py</code>) to connect and issue a LIST command, correctly handling the passive mode data connection.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>Part 5: DNS Simulation</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Simulate DNS by editing the <code>/etc/hosts</code> file on ServerVM to map a name like <code>mywebserver.local</code> to its own IP. Configure the other VMs to use ServerVM as their DNS resolver and test name resolution using <code>ping</code> and <code>dig</code>.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>Part 6: UDP Echo Client-Server</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Write a Python UDP server (<code>udp_server.py</code>) that listens for datagrams and echoes them back. Write a corresponding UDP client (<code>udp_client.py</code>) to send messages and receive the echo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-md">
+                                <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                                    <span>Part 7: TCP Echo Client-Server</span>
+                                    <span class="transform transition-transform duration-300">▼</span>
+                                </button>
+                                <div class="accordion-content px-4 pb-4 text-stone-600">
+                                    <div class="pt-4 border-t border-stone-200">
+                                        <p>Write a Python TCP server (<code>tcp_server.py</code>) that listens for connections and echoes data back to the connected client. Write a corresponding TCP client (<code>tcp_client.py</code>) to connect, send messages, and receive the echo.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     `
                 }
@@ -411,42 +549,27 @@
                 });
             }
 
+            function addAccordionListeners() {
+                document.querySelectorAll('.accordion-toggle').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const content = button.nextElementSibling;
+                        const arrow = button.querySelector('span:last-child');
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                            arrow.style.transform = 'rotate(0deg)';
+                        } else {
+                            content.style.maxHeight = content.scrollHeight + 'px';
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                    });
+                });
+            }
+
             renderTools();
             renderDeliverables();
             renderAssignment();
             renderDashboardInteractivity();
         });
-
-        function createAccordion(title, content) {
-            return `
-                <div class="bg-white rounded-xl shadow-md">
-                    <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
-                        <span>${title}</span>
-                        <span class="transform transition-transform duration-300">▼</span>
-                    </button>
-                    <div class="accordion-content px-4 pb-4 text-stone-600">
-                        <div class="pt-4 border-t border-stone-200">${content}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function addAccordionListeners() {
-            document.querySelectorAll('.accordion-toggle').forEach(button => {
-                button.addEventListener('click', () => {
-                    const content = button.nextElementSibling;
-                    const arrow = button.querySelector('span:last-child');
-                    if (content.style.maxHeight) {
-                        content.style.maxHeight = null;
-                        arrow.style.transform = 'rotate(0deg)';
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                        arrow.style.transform = 'rotate(180deg)';
-                    }
-                });
-            });
-        }
-
     </script>
 </body>
 </html>
