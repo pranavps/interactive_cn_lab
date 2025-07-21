@@ -1,4 +1,100 @@
-and MobileClientVM, remove Network Adapter 1 (NAT). Only Network Adapter 2 (LAN\_NET or BLUE\_NET) should remain.
+
+**Practical Assignment: Building a Basic Network and Application Services on VMs**
+
+**Objective:** This assignment aims to provide hands-on experience with fundamental networking concepts, including VM setup, network configuration (now with DHCP), and the implementation of basic client-server applications using TCP and UDP sockets. You will deploy and interact with common application-layer protocols (HTTP, FTP, DNS), implement a basic firewall with a DMZ and a mobile network segment, and prepare for future packet analysis exercises.
+
+**Tools Required:**
+
+  * **Oracle VirtualBox:** For creating and managing virtual machines.
+  * **Ubuntu Server (24.04.2 LTS):** A lightweight Linux distribution suitable for server roles. Download the ISO image.
+  * **Ubuntu Desktop (24.04.2 LTS):** For a general-purpose client VM and a simulated mobile device. Download the ISO image.
+  * **Kali Linux (latest version):** For a specialized client VM focused on network analysis. Download the ISO image.
+  * **Endian Firewall (EFW) 3.3.2:** A powerful open-source firewall/router distribution. Download the ISO image.
+  * **Python 3:** For implementing custom client-server applications.
+  * **Basic Linux Command Line Knowledge:** Essential for navigating, configuring, and troubleshooting.
+  * **Network Utilities:** ping, ip a (or ifconfig), netstat -tuln (or ss -tuln), dig (or nslookup), traceroute. Consider tcpdump or Wireshark for advanced debugging.
+
+**Deliverables:**
+
+1.  **Report (PDF):** A document detailing your steps, configurations, observations, and answers to questions. Include screenshots where specified.
+2.  **Source Code:** All Python scripts developed for the assignment.
+
+**Part 1: Virtual Machine Setup and Network Infrastructure**
+
+In this part, you will set up multiple virtual machines and configure a network topology that includes a dedicated firewall with a DMZ and a simulated mobile network.
+
+1.1 VM Creation:
+
+  * Create five new Virtual Machines in Oracle VirtualBox.
+  * **VM Name:** `ServerVM`
+      * **OS:** Ubuntu Server (24.04.2 LTS, 64-bit).
+      * **Memory:** At least 2GB (2048 MB).
+      * **Hard Disk:** At least 20GB dynamically allocated.
+      * **Network Adapter 1 (NAT):** Keep the default NAT adapter for initial internet access (for installing packages). This will be removed later.
+      * **Network Adapter 2 (Internal Network):** Add a second adapter. Configure it as an **Internal Network** named `LAN_NET`. This will connect to the firewall's GREEN (LAN) interface.
+  * **VM Name:** `ClientVM`
+      * **OS:** Ubuntu Desktop (24.04.2 LTS, 64-bit).
+      * **Memory:** At least 2GB (2048 MB).
+      * **Hard Disk:** At least 20GB dynamically allocated.
+      * **Network Adapter 1 (NAT):** Keep the default NAT adapter for initial internet access. This will be removed later.
+      * **Network Adapter 2 (Internal Network):** Add a second adapter. Configure it as an **Internal Network** named `LAN_NET` (same as ServerVM).
+  * **VM Name:** `KaliClientVM`
+      * **OS:** Kali Linux (latest version, 64-bit).
+      * **Memory:** At least 2GB (2048 MB).
+      * **Hard Disk:** At least 30GB dynamically allocated.
+      * **Network Adapter 1 (NAT):** Keep the default NAT adapter for initial internet access. This will be removed later.
+      * **Network Adapter 2 (Internal Network):** Add a second adapter. Configure it as an **Internal Network** named `LAN_NET` (same as ServerVM and ClientVM).
+  * **VM Name:** `MobileClientVM`
+      * **OS:** Ubuntu Desktop (24.04.2 LTS, 64-bit).
+      * **Memory:** At least 2GB (2048 MB).
+      * **Hard Disk:** At least 20GB dynamically allocated.
+      * **Network Adapter 1 (NAT):** Keep the default NAT adapter for initial internet access. This will be removed later.
+      * **Network Adapter 2 (Internal Network):** Add a second adapter. Configure it as an **Internal Network** named `BLUE_NET`. This will connect to the firewall's BLUE (Wireless/VPN) interface.
+  * **VM Name:** `FirewallVM`
+      * **OS:** Endian Firewall (EFW) 3.3.2 (64-bit).
+      * **Memory:** At least 1GB (1024 MB).
+      * **Hard Disk:** At least 10GB dynamically allocated.
+      * **Network Adapter 1 (Host-Only Adapter):** This will be the **RED (WAN)** interface. Create a VirtualBox Host-Only Network (e.g., `vboxnet0`, typically in the 192.168.56.0/24 range). Note down its IP range.
+      * **Network Adapter 2 (Internal Network):** This will be the **GREEN (LAN)** interface. Configure it as an **Internal Network** named `LAN_NET` (same as ServerVM, ClientVM, KaliClientVM).
+      * **Network Adapter 3 (Internal Network):** Add a third adapter. Configure it as an **Internal Network** named `DMZ_NET`. This will be the **ORANGE (DMZ)** interface.
+      * **Network Adapter 4 (Internal Network):** Add a fourth adapter. Configure it as an **Internal Network** named `BLUE_NET` (same as MobileClientVM). This will be the **BLUE (Wireless/VPN)** interface.
+
+1.2 Ubuntu/Kali/EFW Installation:
+
+  * Install Ubuntu Server on ServerVM:
+      * Choose a strong password for your user.
+      * Select "Install OpenSSH server".
+      * No desktop environment needed.
+  * Install Ubuntu Desktop on ClientVM and MobileClientVM:
+      * Choose a strong password for your user.
+      * Select "Install OpenSSH server" (optional).
+      * A desktop environment will be installed.
+  * Install Kali Linux on KaliClientVM:
+      * Follow the standard Kali Linux installation process. Choose a strong password.
+      * A desktop environment and many security/network tools will be installed.
+  * Install Endian Firewall (EFW) on FirewallVM:
+      * Boot from the EFW ISO.
+      * Follow the guided installation process. You will be prompted to configure network interfaces during setup.
+      * Assign Interfaces:
+          * Identify your RED (WAN) interface (connected to Host-Only Adapter).
+          * Identify your GREEN (LAN) interface (connected to Internal Network LAN\_NET).
+          * Identify your ORANGE (DMZ) interface (connected to Internal Network DMZ\_NET).
+          * Identify your BLUE (Wireless/VPN) interface (connected to Internal Network BLUE\_NET).
+      * Configure RED to obtain an IP address via DHCP (from VirtualBox's Host-Only Network).
+      * Configure GREEN with a static IP address: 10.0.0.1 with subnet mask 255.255.255.0 (/24).
+      * Enable DHCP Server on GREEN interface: During EFW setup or via the web GUI after installation, configure the DHCP server for the GREEN zone (e.g., IP range 10.0.0.100 to 10.0.0.200).
+      * Configure ORANGE with a static IP address: 10.0.1.1 with subnet mask 255.255.255.0 (/24).
+      * Enable DHCP Server on ORANGE interface: Configure the DHCP server for the ORANGE zone (e.g., IP range 10.0.1.100 to 10.0.1.200).
+      * Configure BLUE with a static IP address: 10.0.2.1 with subnet mask 255.255.255.0 (/24).
+      * Enable DHCP Server on BLUE interface: Configure the DHCP server for the BLUE zone (e.g., IP range 10.0.2.100 to 10.0.2.200).
+      * Complete the installation. After installation, reboot and remove the ISO.
+
+1.3 Initial Network Configuration (Pre-Firewall):
+
+  * On ServerVM, ClientVM, KaliClientVM, MobileClientVM:
+      * Initially, use the NAT adapter (Adapter 1) to perform `sudo apt update && sudo apt upgrade -y` to ensure all systems are up-to-date and have Python3 installed.
+      * Once updates are done, shut down these VMs.
+      * In VirtualBox settings for ServerVM, ClientVM, KaliClientVM and MobileClientVM, remove Network Adapter 1 (NAT). Only Network Adapter 2 (LAN\_NET or BLUE\_NET) should remain.
 
   * **On `FirewallVM` (Endian Firewall):**
       * After EFW installation and reboot, note the IP address of its **RED (WAN)** interface (from the console, it should be in your Host-Only network range, e.g., 192.168.56.X).
