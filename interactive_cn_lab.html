@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Lab Guide: Computer Networks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Amber, Stone, Teal) -->
+    <!-- Application Structure Plan: A two-column SPA. The left column features a main navigation menu. The central content area switches between views: 1) An interactive network topology diagram for overview and VM-specific task selection. 2) A step-by-step guide for each part of the lab, organized into collapsible accordions. 3) A final checklist of deliverables. This task-oriented, visual approach is more engaging and less overwhelming than the original linear document, allowing students to focus on one component (like a single VM or a specific service) at a time. -->
+    <!-- Visualization & Content Choices: The primary visualization is an interactive network diagram built with HTML/CSS divs to represent VMs, zones, and connections. Goal: Organize/Inform. Interaction: Clicking a VM filters the displayed tasks. Justification: This provides a clear mental model of the lab environment. Other content is presented in interactive checklists and collapsible accordions. Goal: Inform/Organize. Interaction: Toggling visibility. Justification: Manages information density and provides progress tracking. No charts are needed as the source is procedural, not data-driven. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .active-nav {
+            background-color: #0d9488; /* teal-700 */
+            color: white;
+        }
+        .task-card ul {
+            list-style-position: inside;
+        }
+        .task-card li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .task-card li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #14b8a6; /* teal-500 */
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .code-block {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .vm-node {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .vm-node:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .selected-vm {
+            border-color: #0d9488; /* teal-700 */
+            border-width: 3px;
+            box-shadow: 0 0 15px rgba(13, 148, 136, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-stone-800">
+    <div class="flex h-screen">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="w-64 bg-stone-800 text-white p-5 flex flex-col">
+            <h1 class="text-2xl font-bold text-teal-400 mb-8">Lab Guide</h1>
+            <ul class="space-y-2">
+                <li><a href="#" data-view="dashboard" class="nav-link active-nav block py-2.5 px-4 rounded transition duration-200 hover:bg-teal-700">Dashboard</a></li>
+                <li><a href="#" data-view="assignment" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-teal-700">Assignment Steps</a></li>
+                <li><a href="#" data-view="tools" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-teal-700">Tools Required</a></li>
+                <li><a href="#" data-view="deliverables" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-teal-700">Deliverables</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+            
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view-content">
+                <h2 class="text-4xl font-bold text-stone-900 mb-2">Network Topology Dashboard</h2>
+                <p class="text-lg text-stone-600 mb-8">Click on a VM or network zone to see its configuration and related tasks.</p>
+                
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="text-center mb-6">
+                        <p class="text-sm text-stone-500">Host Machine / Internet</p>
+                        <div class="flex justify-center"><div class="w-0.5 h-8 bg-stone-300"></div></div>
+                    </div>
+                    
+                    <!-- RED Zone -->
+                    <div class="border-2 border-dashed border-red-400 rounded-lg p-4 mb-4 bg-red-50 text-center">
+                        <p class="font-bold text-red-600">RED ZONE (WAN)</p>
+                        <p class="text-sm text-red-500">Host-Only Network: e.g., 192.168.56.0/24</p>
+                        <div class="flex justify-center"><div class="w-0.5 h-8 bg-stone-300"></div></div>
+
+                        <!-- Firewall VM -->
+                        <div id="diagram-firewallvm" class="vm-node cursor-pointer inline-block bg-stone-200 border-2 border-stone-400 p-4 rounded-lg text-center shadow-md">
+                            <span class="text-4xl">🛡️</span>
+                            <p class="font-bold">FirewallVM</p>
+                            <p class="text-sm text-stone-600">Endian Firewall 3.3.2</p>
+                        </div>
+
+                        <div class="flex justify-center"><div class="w-0.5 h-8 bg-stone-300"></div></div>
+
+                        <!-- Zone Connectors -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                            <!-- GREEN Zone -->
+                            <div class="border-2 border-dashed border-green-500 rounded-lg p-4 bg-green-50 text-center">
+                                <p class="font-bold text-green-700">GREEN ZONE (LAN)</p>
+                                <p class="text-sm text-green-600">10.0.0.0/24</p>
+                                <div class="flex justify-center"><div class="w-0.5 h-8 bg-green-300"></div></div>
+                                <div class="space-y-4">
+                                    <div id="diagram-clientvm" class="vm-node cursor-pointer bg-white border-2 border-stone-300 p-3 rounded-lg text-center">
+                                        <p class="font-semibold">ClientVM</p><p class="text-xs">Ubuntu Desktop</p>
+                                    </div>
+                                    <div id="diagram-kaliclientvm" class="vm-node cursor-pointer bg-white border-2 border-stone-300 p-3 rounded-lg text-center">
+                                        <p class="font-semibold">KaliClientVM</p><p class="text-xs">Kali Linux</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- ORANGE Zone -->
+                            <div class="border-2 border-dashed border-orange-500 rounded-lg p-4 bg-orange-50 text-center">
+                                <p class="font-bold text-orange-700">ORANGE ZONE (DMZ)</p>
+                                <p class="text-sm text-orange-600">10.0.1.0/24</p>
+                                <div class="flex justify-center"><div class="w-0.5 h-8 bg-orange-300"></div></div>
+                                <div class="space-y-4">
+                                    <div id="diagram-servervm" class="vm-node cursor-pointer bg-white border-2 border-stone-300 p-3 rounded-lg text-center">
+                                        <p class="font-semibold">ServerVM</p><p class="text-xs">Ubuntu Server</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- BLUE Zone -->
+                            <div class="border-2 border-dashed border-blue-500 rounded-lg p-4 bg-blue-50 text-center">
+                                <p class="font-bold text-blue-700">BLUE ZONE (Mobile/VPN)</p>
+                                <p class="text-sm text-blue-600">10.0.2.0/24</p>
+                                <div class="flex justify-center"><div class="w-0.5 h-8 bg-blue-300"></div></div>
+                                <div class="space-y-4">
+                                     <div id="diagram-mobileclientvm" class="vm-node cursor-pointer bg-white border-2 border-stone-300 p-3 rounded-lg text-center">
+                                        <p class="font-semibold">MobileClientVM</p><p class="text-xs">Ubuntu Desktop</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Details Pane -->
+                <div id="details-pane" class="mt-8 bg-white p-6 rounded-xl shadow-lg hidden">
+                    <h3 id="details-title" class="text-2xl font-bold mb-4"></h3>
+                    <div id="details-content" class="prose max-w-none text-stone-700"></div>
+                </div>
+            </div>
+
+            <!-- Assignment Steps View -->
+            <div id="view-assignment" class="view-content hidden">
+                <h2 class="text-4xl font-bold text-stone-900 mb-8">Assignment Steps</h2>
+                <div id="assignment-content" class="space-y-4">
+                    <!-- Content will be generated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Tools View -->
+            <div id="view-tools" class="view-content hidden">
+                 <h2 class="text-4xl font-bold text-stone-900 mb-8">Tools Required</h2>
+                 <div class="bg-white p-8 rounded-xl shadow-lg prose max-w-none">
+                     <ul id="tools-list">
+                        <!-- Content will be generated by JavaScript -->
+                     </ul>
+                 </div>
+            </div>
+
+            <!-- Deliverables View -->
+            <div id="view-deliverables" class="view-content hidden">
+                <h2 class="text-4xl font-bold text-stone-900 mb-8">Deliverables Checklist</h2>
+                <div class="bg-white p-8 rounded-xl shadow-lg prose max-w-none">
+                    <div id="deliverables-list">
+                        <!-- Content will be generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const AppData = {
+            vms: {
+                firewallvm: { name: 'FirewallVM (EFW)', os: 'Endian Firewall 3.3.2', memory: '1GB', disk: '10GB', interfaces: ['RED (Host-Only)', 'GREEN (Internal)', 'ORANGE (Internal)', 'BLUE (Internal)']},
+                servervm: { name: 'ServerVM', os: 'Ubuntu Server 24.04.2 LTS', memory: '2GB', disk: '20GB', interfaces: ['ORANGE_NET (Internal)'] },
+                clientvm: { name: 'ClientVM', os: 'Ubuntu Desktop 24.04.2 LTS', memory: '2GB', disk: '20GB', interfaces: ['LAN_NET (Internal)'] },
+                kaliclientvm: { name: 'KaliClientVM', os: 'Kali Linux', memory: '2GB', disk: '30GB', interfaces: ['LAN_NET (Internal)'] },
+                mobileclientvm: { name: 'MobileClientVM', os: 'Ubuntu Desktop 24.04.2 LTS', memory: '2GB', disk: '20GB', interfaces: ['BLUE_NET (Internal)'] }
+            },
+            tools: [
+                'Oracle VirtualBox',
+                'Ubuntu Server (24.04.2 LTS) ISO',
+                'Ubuntu Desktop (24.04.2 LTS) ISO',
+                'Kali Linux (latest version) ISO',
+                'Endian Firewall (EFW) 3.3.2 ISO',
+                'Python 3',
+                'Basic Linux Command Line Knowledge',
+                'Network Utilities: ping, ip a, netstat, dig, traceroute, etc.'
+            ],
+            deliverables: [
+                { type: 'Report (PDF)', items: [
+                    'Screenshots of pings & traceroute (Part 1.5)',
+                    'Answer to Question 1.1, 1.2, 1.3, 1.4',
+                    'Screenshot of blocked web access (Part 2.3)',
+                    'Answer to Question 2.1, 2.2',
+                    'Screenshot for Question 2.3',
+                    'Screenshots of Lynx and curl access (Part 3.2)',
+                    'Answer to Question 3.1',
+                    'Screenshot of custom HTTP client output (Part 3.3)',
+                    'Screenshot of FTP client session (Part 4.2)',
+                    'Answer to Question 4.1',
+                    'Screenshots of DNS resolution (Part 5.3)',
+                    'Answer to Question 5.1',
+                    'Screenshot of UDP echo test (Part 6.3)',
+                    'Answer to Question 6.1',
+                    'Screenshot of TCP echo test (Part 7.3)',
+                    'Answer to Question 7.1, 7.2',
+                ]},
+                { type: 'Source Code (.zip)', items: [
+                    'http_client.py',
+                    'ftp_client_list.py',
+                    'udp_server.py',
+                    'udp_client.py',
+                    'tcp_server.py',
+                    'tcp_client.py'
+                ]}
+            ],
+            assignmentParts: [
+                { 
+                    title: 'Part 1: Virtual Machine Setup and Network Infrastructure',
+                    content: `
+                        <p class="mb-4">In this part, you will set up multiple virtual machines and configure a network topology that includes a dedicated firewall with a DMZ and a simulated mobile network.</p>
+                        <div class="space-y-4">
+                            ${createAccordion('1.1 VM Creation', `
+                                <p>Create five new Virtual Machines in Oracle VirtualBox with the specified OS, memory, and disk settings.</p>
+                                <ul class="list-disc pl-5 mt-2 space-y-2">
+                                    <li><b>FirewallVM:</b> 4 Network Adapters (Host-Only, LAN_NET, DMZ_NET, BLUE_NET)</li>
+                                    <li><b>ServerVM:</b> 2 Network Adapters (NAT for setup, then DMZ_NET only)</li>
+                                    <li><b>ClientVM:</b> 2 Network Adapters (NAT for setup, then LAN_NET only)</li>
+                                    <li><b>KaliClientVM:</b> 2 Network Adapters (NAT for setup, then LAN_NET only)</li>
+                                    <li><b>MobileClientVM:</b> 2 Network Adapters (NAT for setup, then BLUE_NET only)</li>
+                                </ul>`)}
+                            ${createAccordion('1.2 EFW Installation & Configuration', `
+                                <p>Install Endian Firewall on <b>FirewallVM</b>. During setup:</p>
+                                <ul class="list-disc pl-5 mt-2 space-y-2">
+                                    <li>Assign network interfaces to the correct zones: RED, GREEN, ORANGE, BLUE.</li>
+                                    <li><b>RED (WAN):</b> Set to obtain IP via DHCP.</li>
+                                    <li><b>GREEN (LAN):</b> Static IP <b>10.0.0.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.0.100-200).</li>
+                                    <li><b>ORANGE (DMZ):</b> Static IP <b>10.0.1.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.1.100-200).</li>
+                                    <li><b>BLUE (Mobile/VPN):</b> Static IP <b>10.0.2.1/24</b>. Enable DHCP server for this zone (e.g., range 10.0.2.100-200).</li>
+                                </ul>`)}
+                            ${createAccordion('1.3 Client & Server Network Configuration', `
+                                <p>First, update all Ubuntu/Kali VMs using the NAT adapter, then remove it. Configure the remaining internal adapter to use DHCP.</p>
+                                <p><b>Example Netplan for LAN_NET VMs (ClientVM, KaliClientVM):</b></p>
+                                <div class="code-block">network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp0s8: # Or your interface name\n      dhcp4: yes\n      nameservers:\n        addresses: [10.0.0.1]</div>
+                                <p class="mt-4"><b>Example Netplan for DMZ_NET VM (ServerVM):</b></p>
+                                <div class="code-block">network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp0s8: # Or your interface name\n      dhcp4: yes\n      nameservers:\n        addresses: [10.0.1.1]</div>
+                                <p class="mt-4"><b>Example Netplan for BLUE_NET VM (MobileClientVM):</b></p>
+                                <div class="code-block">network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp0s8: # Or your interface name\n      dhcp4: yes\n      nameservers:\n        addresses: [10.0.2.1]</div>
+                                <p class="mt-4">After applying, find each VM's assigned IP address using <code>ip a</code>.</p>`)}
+                            ${createAccordion('1.4 Connectivity Test', `
+                                <p>From each client VM, ping the other VMs and the firewall interfaces to test connectivity. Ping an external site like <code>google.com</code> to test internet access through the firewall. Use the dynamically assigned IPs you found.</p>
+                                <p>Run <code>traceroute google.com</code> from ClientVM to see the network path.</p>
+                                <p class="font-bold mt-4">Questions to Answer:</p>
+                                <ul class="list-disc pl-5 mt-2">
+                                    <li><b>1.1:</b> Explain the suitability of the Host-Only/Internal network topology.</li>
+                                    <li><b>1.2:</b> What is the purpose of a DMZ (ORANGE zone)?</li>
+                                    <li><b>1.3:</b> What is the typical use case for a BLUE zone?</li>
+                                    <li><b>1.4:</b> Discuss the pros and cons of using DHCP vs. static IPs in this lab.</li>
+                                </ul>`)}
+                        </div>
+                    `
+                },
+                { 
+                    title: 'Part 2: Firewall Implementation',
+                    content: `
+                         <p class="mb-4">In this part, you will access the Endian Firewall web interface and configure basic firewall rules to control traffic between your network zones.</p>
+                        <div class="space-y-4">
+                             ${createAccordion('2.1 Access EFW Web GUI', `
+                                <p>From your <b>host machine's browser</b>, navigate to the <b>RED (WAN) IP address</b> of your FirewallVM (e.g., http://192.168.56.101). Log in and complete the initial setup wizard.</p>
+                             `)}
+                             ${createAccordion('2.2 Basic Firewall Rules', `
+                                <p>Navigate to <b>Firewall > Traffic Rules</b>. You will create rules to explicitly allow or deny traffic.</p>
+                                <ul class="list-disc pl-5 mt-2 space-y-2">
+                                    <li><b>Rule 1:</b> Allow HTTP from any source in the GREEN zone to any destination in the ORANGE zone (where ServerVM is now located).</li>
+                                    <li><b>Rule 2:</b> Create rules to allow ICMP (Ping) traffic between all your internal zones (GREEN, ORANGE, BLUE) to facilitate testing.</li>
+                                </ul>
+                             `)}
+                            ${createAccordion('2.3 Testing Firewall Rules', `
+                                <p>From ClientVM, verify you can ping and access the web server on ServerVM. Then, temporarily disable the HTTP rule in EFW and show that access is blocked. Re-enable it afterwards.</p>
+                                <p class="font-bold mt-4">Questions to Answer:</p>
+                                <ul class="list-disc pl-5 mt-2">
+                                    <li><b>2.1:</b> Explain the concept of a stateful firewall.</li>
+                                    <li><b>2.2:</b> Describe EFW's default outbound policy for the GREEN zone.</li>
+                                    <li><b>2.3:</b> Implement and test a rule to block HTTP from the BLUE zone to the GREEN zone.</li>
+                                </ul>`)}
+                        </div>`
+                },
+                {
+                    title: 'Part 3-7: Application Services & Sockets',
+                    content: `
+                        <p class="mb-4">These parts involve setting up services on ServerVM and creating custom clients to interact with them. You will use the dynamically assigned IP of ServerVM (<b>ServerVM_IP</b>) for all connections. Remember that ServerVM is now in the ORANGE zone.</p>
+                        <div class="space-y-4">
+                            ${createAccordion('Part 3: HTTP Server & Client', `
+                                <p>Install Apache2 on ServerVM and create a simple index.html. Access it from all client VMs using <code>lynx</code> or <code>curl</code>. Then, write a Python script (<code>http_client.py</code>) on ClientVM to make a GET request to ServerVM using sockets.</p>
+                            `)}
+                            ${createAccordion('Part 4: FTP Server & Client', `
+                                <p>Install vsftpd on ServerVM. Access it from the clients using a standard FTP client. Then, write a Python script (<code>ftp_client_list.py</code>) to connect and issue a LIST command, correctly handling the passive mode data connection.</p>
+                            `)}
+                            ${createAccordion('Part 5: DNS Simulation', `
+                                <p>Simulate DNS by editing the <code>/etc/hosts</code> file on ServerVM to map a name like <code>mywebserver.local</code> to its own IP. Configure the other VMs to use ServerVM as their DNS resolver and test name resolution using <code>ping</code> and <code>dig</code>.</p>
+                            `)}
+                            ${createAccordion('Part 6: UDP Echo Client-Server', `
+                                <p>Write a Python UDP server (<code>udp_server.py</code>) that listens for datagrams and echoes them back. Write a corresponding UDP client (<code>udp_client.py</code>) to send messages and receive the echo.</p>
+                            `)}
+                            ${createAccordion('Part 7: TCP Echo Client-Server', `
+                                <p>Write a Python TCP server (<code>tcp_server.py</code>) that listens for connections and echoes data back to the connected client. Write a corresponding TCP client (<code>tcp_client.py</code>) to connect, send messages, and receive the echo.</p>
+                            `)}
+                        </div>
+                    `
+                }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const views = document.querySelectorAll('.view-content');
+            
+            sidebar.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A') {
+                    e.preventDefault();
+                    const viewId = e.target.getAttribute('data-view');
+
+                    views.forEach(view => view.classList.add('hidden'));
+                    document.getElementById(`view-${viewId}`).classList.remove('hidden');
+
+                    sidebar.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active-nav'));
+                    e.target.classList.add('active-nav');
+                }
+            });
+
+            function renderTools() {
+                const list = document.getElementById('tools-list');
+                list.innerHTML = AppData.tools.map(tool => `<li>${tool}</li>`).join('');
+            }
+            
+            function renderDeliverables() {
+                const list = document.getElementById('deliverables-list');
+                list.innerHTML = AppData.deliverables.map(cat => `
+                    <h3 class="text-xl font-semibold mt-6 mb-2">${cat.type}</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        ${cat.items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                `).join('');
+            }
+
+            function renderAssignment() {
+                const container = document.getElementById('assignment-content');
+                container.innerHTML = AppData.assignmentParts.map(part => createAccordion(part.title, part.content)).join('');
+                addAccordionListeners();
+            }
+            
+            function renderDashboardInteractivity() {
+                const detailsPane = document.getElementById('details-pane');
+                const detailsTitle = document.getElementById('details-title');
+                const detailsContent = document.getElementById('details-content');
+                const vmNodes = document.querySelectorAll('.vm-node');
+
+                vmNodes.forEach(node => {
+                    node.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        vmNodes.forEach(n => n.classList.remove('selected-vm'));
+                        node.classList.add('selected-vm');
+                        
+                        const vmId = node.id.replace('diagram-', '');
+                        const vmData = AppData.vms[vmId];
+                        
+                        if (vmData) {
+                            detailsTitle.textContent = vmData.name;
+                            detailsContent.innerHTML = `
+                                <p><strong>OS:</strong> ${vmData.os}</p>
+                                <p><strong>Memory:</strong> ${vmData.memory}</p>
+                                <p><strong>Disk:</strong> ${vmData.disk}</p>
+                                <p><strong>Interfaces:</strong></p>
+                                <ul class="list-disc pl-5">
+                                    ${vmData.interfaces.map(iface => `<li>${iface}</li>`).join('')}
+                                </ul>
+                                <h4 class="font-bold mt-4">Relevant Tasks:</h4>
+                                <div class="task-card bg-amber-50 p-4 rounded-lg border border-amber-200 mt-2">
+                                    <ul>
+                                        <li>Initial OS Installation & Update</li>
+                                        <li>Network Configuration (Static or DHCP)</li>
+                                        ${vmId === 'firewallvm' ? '<li>Firewall Rule Configuration</li><li>DHCP Server Setup</li>' : ''}
+                                        ${vmId === 'servervm' ? '<li>Apache & vsftpd Server Setup</li><li>DNS Host File Config</li><li>Run TCP/UDP Echo Servers</li>' : ''}
+                                        ${vmId !== 'firewallvm' && vmId !== 'servervm' ? '<li>Run various clients (lynx, curl, ftp, custom python scripts)</li>' : ''}
+                                    </ul>
+                                </div>
+                            `;
+                            detailsPane.classList.remove('hidden');
+                        }
+                    });
+                });
+                
+                document.body.addEventListener('click', () => {
+                     vmNodes.forEach(n => n.classList.remove('selected-vm'));
+                     detailsPane.classList.add('hidden');
+                });
+            }
+
+            renderTools();
+            renderDeliverables();
+            renderAssignment();
+            renderDashboardInteractivity();
+        });
+
+        function createAccordion(title, content) {
+            return `
+                <div class="bg-white rounded-xl shadow-md">
+                    <button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-stone-700 hover:bg-stone-50 rounded-t-xl flex justify-between items-center">
+                        <span>${title}</span>
+                        <span class="transform transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="accordion-content px-4 pb-4 text-stone-600">
+                        <div class="pt-4 border-t border-stone-200">${content}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addAccordionListeners() {
+            document.querySelectorAll('.accordion-toggle').forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const arrow = button.querySelector('span:last-child');
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        arrow.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        arrow.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+        }
+
+    </script>
+</body>
+</html>
